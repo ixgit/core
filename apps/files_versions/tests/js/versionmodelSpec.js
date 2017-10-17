@@ -7,9 +7,14 @@
  * See the COPYING-README file.
  *
  */
+
+/* global dav */
 describe('OCA.Versions.VersionModel', function() {
 	var VersionModel = OCA.Versions.VersionModel;
 	var model;
+
+	var requestStub;
+	var requestDeferred;
 
 	beforeEach(function() {
 		model = new VersionModel({
@@ -20,6 +25,12 @@ describe('OCA.Versions.VersionModel', function() {
 			size: 150,
 			versionId: 123456789
 		});
+
+		requestDeferred = new $.Deferred();
+		requestStub = sinon.stub(dav.Client.prototype, 'request').returns(requestDeferred.promise());
+	});
+	afterEach(function() { 
+		requestStub.restore();
 	});
 
 	it('returns the full path', function() {
@@ -47,27 +58,29 @@ describe('OCA.Versions.VersionModel', function() {
 			errorStub = sinon.stub();
 			successStub = sinon.stub();
 
-			model.on('revert', function () {
-				revertEventStub();
-			});
+			model.on('revert', revertEventStub);
 			model.on('error', errorStub);
 		});
+		
 		it('tells the server to revert when calling the revert method', function() {
 			model.revert({
 				success: successStub
 			});
 
-			expect(fakeServer.requests.length).toEqual(1);
-			expect(fakeServer.requests[0].url)
-				.toEqual(
-					'https://somehost:8080/owncloud/remote.php/dav/meta/10000000/v/123456789'
-				);
-
-			fakeServer.requests[0].respond(
-				204
+			expect(requestStub.calledOnce).toEqual(true);
+			expect(requestStub.getCall(0).args[0]).toEqual('COPY');
+			expect(requestStub.getCall(0).args[1]).toEqual(
+					'/owncloud/remote.php/dav/meta/10000000/v/123456789'
+			);
+			expect(requestStub.getCall(0).args[2]['Destination']).toEqual(
+				'https://somehost:8080/owncloud/remote.php/webdav/subdir/some%20file.txt'
 			);
 
-			console.log('callcount: ' + revertEventStub.callCount);
+			requestDeferred.resolve({
+				status: 204,
+				body: ''
+			});
+
 			expect(revertEventStub.called).toEqual(true);
 			expect(successStub.calledOnce).toEqual(true);
 			expect(errorStub.notCalled).toEqual(true);
@@ -77,14 +90,12 @@ describe('OCA.Versions.VersionModel', function() {
 				success: successStub
 			});
 
-			expect(fakeServer.requests.length).toEqual(1);
-			fakeServer.requests[0].respond(
-				200,
-				{ 'Content-Type': 'application/json' },
-				JSON.stringify({
-					status: 'error',
-				})
-			);
+			expect(requestStub.calledOnce).toEqual(true);
+
+			requestDeferred.resolve({
+				status: 400,
+				body: ''
+			});
 
 			expect(revertEventStub.notCalled).toEqual(true);
 			expect(successStub.notCalled).toEqual(true);

@@ -28,8 +28,7 @@
 					}
 					model.trigger('revert', model, options);
 				})
-				.fail(function (status) {
-					console.log('copy.fail :' + status);
+				.fail(function () {
 					if (options.error) {
 						options.error.call(options.context, model, {}, options);
 					}
