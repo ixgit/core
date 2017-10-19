@@ -20,8 +20,13 @@
 		revert: function(options) {
 			options = options ? _.clone(options) : {};
 			var model = this;
+			var client = new OC.Files.Client({
+				host: OC.getHost(),
+				root: OC.linkToRemoteBase('dav') + '/files/' + OC.getCurrentUser().uid,
+				useHTTPS: OC.getProtocol() === 'https'
+			});
 
-			OC.Files.getClient().copy(this.getDownloadUrl(), this.getFullPath(), true, {}, {pathIsUrl: true})
+			client.copy(this.getDownloadUrl(), this.getFullPath(), true, {}, {pathIsUrl: true})
 				.done(function() {
 					if (options.success) {
 						options.success.call(options.context, model, {}, options);
@@ -51,7 +56,7 @@
 
 		getDownloadUrl: function() {
 			return OC.linkToRemoteBase('dav') + '/meta/' +
-				encodeURIComponent(this.get('id')) + '/v/' +
+				encodeURIComponent(this.get('fileId')) + '/v/' +
 				encodeURIComponent(this.get('versionId'));
 		}
 	});

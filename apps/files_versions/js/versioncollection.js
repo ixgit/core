@@ -73,19 +73,19 @@
 		parse: function(result) {
 			var fullPath = this._fileInfo.getFullPath();
 			var fileId = this._fileInfo.get('id');
-			var results = _.map(result.data.versions, function(version) {
-				var revision = parseInt(version.version, 10);
+			var results = _.map(result, function(version) {
+				var revision = parseInt(version.id, 10);
 				return {
 					id: revision,
-					name: version.name,
+					name: revision,
 					fullPath: fullPath,
 					timestamp: revision,
 					versionId: revision,
-					size: version.size,
+					size: version['{DAV:}getcontentlength'],
 					fileId: fileId
 				};
 			});
-			this._endReached = result.data.endReached;
+			this._endReached = results.length;
 			this._currentIndex += results.length;
 			return results;
 		}
